@@ -21,13 +21,25 @@ module Pickle
       end    
       
       def parse_hash(hash)
-        hash.inject({}) do |parsed, (key, val)|
-          if session && val =~ /^#{capture_model}$/
-            parsed.merge(key => session.model($1))
+        fields = hash.map do |key, val|
+          if val =~ /^#{match_model}$/ || val =~ /^#{match_collection}$/
+            "#{key}: #{val}"
           else
-            parsed.merge(key => val)
+            "#{key}: \"#{val}\""
           end
-        end
+        end.join(', ')
+
+        parse_fields(fields)
+
+#        hash.inject({}) do |parsed, (key, val)|
+#          if session && val =~ /^#{capture_model}$/
+#            parsed.merge(key => session.model($1))
+#          elsif session && (match = val.match(/^#{capture_models_in_collection}$/))
+#            parsed.merge(key => match.to_a.compact[1..-1])
+#          else
+#            parsed.merge(key => val)
+#          end
+#        end
       end
     end
   end

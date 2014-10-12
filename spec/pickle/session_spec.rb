@@ -51,7 +51,7 @@ describe Pickle::Session do
 
   describe "extending Pickle::Session" do
     subject do
-      returning Object.new do |object|
+      Object.new.tap do |object|
         object.extend Pickle::Session
       end
     end
@@ -80,7 +80,7 @@ describe Pickle::Session do
 
     describe "(found from db)" do
       let :user_from_db do
-        returning user.dup do |from_db|
+        user.dup.tap do |from_db|
           from_db.stub!(:id).and_return(100)
         end
       end
@@ -141,6 +141,29 @@ describe Pickle::Session do
         before { create_model('1 user', 'foo: "bar", baz: "bing bong"') }
 
         it_should_behave_like "after storing a single user"
+      end
+    end
+
+    describe "('1 user', 'friends: []')" do
+      it "should call user_factory.create({'friends' => []})" do
+        user_factory.should_receive(:create).with({'friends' => []})
+        create_model('1 user', 'friends: []')
+      end
+    end
+
+    describe "('1 user', 'friends: [a user]')" do
+      it "should call user_factory.create({'friends' => []})" do
+        user_class.should_receive(:find).with(1).once
+        user_factory.should_receive(:create).with({'friends' => [create_model("user")]})
+        create_model('1 user', 'friends: [a user]')
+      end
+    end
+
+    describe "('1 user', 'friends: [a user, an user]')" do
+      it "should call user_factory.create({'friends' => []})" do
+        user_class.should_receive(:find).with(1).twice
+        user_factory.should_receive(:create).with({'friends' => [create_model("user"), create_model("user")]})
+        create_model('1 user', 'friends: [a user, an user]')
       end
     end
 
@@ -410,7 +433,7 @@ describe Pickle::Session do
       let :ar_class do
         mock('ActiveRecord', :column_names => ['user_id', 'user_type'], :const_get => ActiveRecord::Base::PickleAdapter)
       end
-            
+
       it "should return {'user_id' => <the user.id>, 'user_type' => <the user.base_class>}" do
         user.class.should_receive(:base_class).and_return(mock('User base class', :name => 'UserBase'))
         convert_models_to_attributes(ar_class, :user => user).should == {'user_id' => user.id, 'user_type' => 'UserBase'}
